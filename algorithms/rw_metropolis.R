@@ -1,5 +1,5 @@
-source("constants.R")
-source("data_sim.R")
+source("./algorithms/constants.R")
+source("./algorithms/data_sim.R")
 #' Run Random Walk Metropolis Metropolis-Hastings Algorithm
 #' Proposal dist q(x, y) for x, y in R_{d} at time t: x_{t-1} + epsilon
 #' Epsilon ~ N(0, proposal_sigma)
@@ -13,24 +13,27 @@ source("data_sim.R")
 #' 
 #' @return matrix of steps in the chain
 rw_metropolis <- function(n_dim, mu, sigma, mixture_probs, proposal_sigma, n_iters, seed = NA) {
+  if (n_iters < 2) {
+    rlang::abort("Must run at least 2 iterations in the chain")
+  }
   if (is.na(seed)) {
     seed <- round(runif(1) * 1e7)
   }
   set.seed(seed)
   chain <- runif(n_dim)
   message(paste0("Running Random Walk Metropolis chain with ", n_iters, " steps and seed: ", seed))
-  for (i in 1:n_iters) {
+  for (i in 2:n_iters) {
     if (i %% 1000 == 0) {
       message(paste0("Proposing step ", i))
     }
-    proposal <- chain[i] + rnorm(n_dim, sd = sqrt(proposal_sigma))
+    proposal <- chain[i - 1] + rnorm(n_dim, sd = sqrt(proposal_sigma))
     acceptance_prob <- min(1, calculate_gaussian_mixture_prob(proposal, mu, sigma, mixture_probs) /
-                             calculate_gaussian_mixture_prob(chain[i], mu, sigma, mixture_probs))
+                             calculate_gaussian_mixture_prob(chain[i - 1], mu, sigma, mixture_probs))
     accept <- as.logical(rbinom(1, 1, acceptance_prob))
     if (accept) {
       chain <- rbind(chain, proposal, deparse.level = 0)
     } else {
-      chain <- rbind(chain, chain[i], deparse.level = 0)
+      chain <- rbind(chain, chain[i - 1], deparse.level = 0)
     }
   }
   return(chain)
