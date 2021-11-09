@@ -8,7 +8,7 @@ mixture_probs <- c(0.45, 0.1, 0.45)
 
 testthat::test_that(
   "gaussian_data_sim_correct_value_one_param",
-  testthat::expect_equal((dnorm(0, mu_vec, sigma_vec) %*% mixture_probs)[1, 1],
+  testthat::expect_equal((dnorm(0, mu_vec, sqrt(sigma_vec)) %*% mixture_probs)[1, 1],
                          calculate_gaussian_mixture_prob(0, mu_vec, sigma_vec, mixture_probs))
 )
 

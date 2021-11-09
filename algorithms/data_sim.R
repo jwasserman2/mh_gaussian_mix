@@ -15,7 +15,7 @@ calculate_gaussian_mixture_prob <- function(x, mu, sigma, mixture_probs) {
   if (any(vec_lengths != vec_lengths[1])) {
     rlang::abort("Mu, sigma, and mixture probabilities must have corresponding shapes")
   }
-  return((dnorm(x, mu, sigma) %*% mixture_probs)[1, 1])
+  return(purrr::map_dbl(x, ~ dnorm(.x, mu, sqrt(sigma)) %*% mixture_probs))
 }
 
 #' Calculate T mixture density
@@ -26,5 +26,5 @@ calculate_heavytail_mixture_prob <- function(x, df, noncentral_param, mixture_pr
                   "must have corresponding shapes")
     rlang::abort(msg)
   }
-  return((dt(x, df = df, ncp = noncentral_param) %*% mixture_probs)[1, 1])
+  return(purrr::map_dbl(x, ~ dt(.x, df = df, ncp = noncentral_param) %*% mixture_probs))
 }
