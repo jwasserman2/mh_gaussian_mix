@@ -1,6 +1,6 @@
 library(testthat)
 
-source("../algorithms/data_sim.R")
+source("./algorithms/data_sim.R")
 mu_vec <- c(-5, 0, 5)
 sigma_vec <- rep(2, 3)
 df_vec <- rep(10, 3)
