@@ -1,3 +1,4 @@
+source("./algorithms/data_sim.R")
 #' Plot an MCMC chain against a Gaussian mixture distribution (currently only for one parameter of interest)
 plot_mcmc_vs_true_density <- function(chain, true_density_kwargs) {
   if (any(names(true_density_kwargs) == "df")) {
@@ -20,13 +21,10 @@ plot_mcmc_vs_true_density <- function(chain, true_density_kwargs) {
                             do.call(true_density_func, run_kwargs)
                           }
                         ))
-  x_plot_breaks <- round(c(unique(c(mu, 0)), min(mu) - 4 * max(sigma), min(mu) - 2 * max(sigma), min(mu), 0, max(mu) + 2 * max(sigma),
+  x_plot_breaks <- round(c(unique(c(mu, 0)), min(mu) - 4 * max(sigma),
+                           min(mu) - 2 * max(sigma), min(mu),
+                           max(mu) + 2 * max(sigma),
                            max(mu) + 4 * max(sigma)))
-  # i <- 1
-  # while (length(x_plot_breaks) > 10) {
-  #   x_plot_breaks <- round(seq(min(mu) - 4 * max(sigma), max(mu) + 4 * max(sigma), i + 1))
-  #   i = i + 1
-  # }
 
   ggplot2::ggplot(chain_df) +
     ggplot2::geom_histogram(ggplot2::aes(x = chain), bins = 30) +
