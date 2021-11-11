@@ -11,7 +11,7 @@ plot_mcmc_vs_true_density <- function(chain, true_density_kwargs) {
   chain_df <- data.frame("chain" = chain)
   mu <- rlang::`%||%`(true_density_kwargs[["noncentral_param"]], true_density_kwargs[["mu"]])
   sigma <- rlang::`%||%`(true_density_kwargs[["df"]], true_density_kwargs[["sigma"]])
-  density_breaks <- seq(min(mu) - 4 * max(sigma), max(mu) + 4 * max(sigma), 0.1)
+  density_breaks <- seq(min(mu) - N_SDS_TO_PLOT * max(sqrt(sigma)), max(mu) + N_SDS_TO_PLOT * max(sqrt(sigma)), 0.1)
   true_df <- data.frame("x" = density_breaks,
                         "true_density" = purrr::map_dbl(
                           density_breaks,
@@ -21,10 +21,10 @@ plot_mcmc_vs_true_density <- function(chain, true_density_kwargs) {
                             do.call(true_density_func, run_kwargs)
                           }
                         ))
-  x_plot_breaks <- round(c(unique(c(mu, 0)), min(mu) - 4 * max(sigma),
-                           min(mu) - 2 * max(sigma), min(mu),
-                           max(mu) + 2 * max(sigma),
-                           max(mu) + 4 * max(sigma)))
+  x_plot_breaks <- round(c(unique(c(mu, 0)), min(mu) - N_SDS_TO_PLOT * max(sqrt(sigma)),
+                           min(mu) - N_SDS_TO_PLOT / 2 * round(max(sqrt(sigma)), 1), min(mu),
+                           max(mu) + N_SDS_TO_PLOT / 2 * round(max(sqrt(sigma)), 1),
+                           max(mu) + N_SDS_TO_PLOT * round(max(sqrt(sigma)), 1)))
 
   ggplot2::ggplot(chain_df) +
     ggplot2::geom_histogram(ggplot2::aes(x = chain), bins = 30) +
