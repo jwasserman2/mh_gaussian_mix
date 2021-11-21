@@ -27,6 +27,7 @@ rw_metropolis <- function(n_dim, mu, sigma, mixture_probs, proposal_sigma, n_ite
       message(paste0("Proposing step ", i))
     }
     proposal <- chain[i - 1] + rnorm(n_dim, sd = sqrt(proposal_sigma))
+    # use sample mu, sigma, mixture probs (but say we're correct with the number of components)
     acceptance_prob <- min(1, calculate_gaussian_mixture_prob(proposal, mu, sigma, mixture_probs) /
                              calculate_gaussian_mixture_prob(chain[i - 1], mu, sigma, mixture_probs))
     accept <- as.logical(rbinom(1, 1, acceptance_prob))

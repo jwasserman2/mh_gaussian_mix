@@ -1,5 +1,3 @@
-library(rlang)
-
 #' Calculate the true density for a mixture distribution
 calculate_true_density <- function(x, true_density_kwargs) {
   run_kwargs <- true_density_kwargs[names(true_density_kwargs) != "gaussian_mixture"]
