@@ -20,6 +20,8 @@ calculate_wasserstein_distance <- function(dist1, dist2, parallel = TRUE) {
     cdf_indices <- foreach::foreach(dist = list(dist1_sorted, dist2_sorted)) %dopar% {
       purrr::map_int(all_sorted[-length(all_sorted)], ~ length(dist[dist <= .x]))
     }
+    parallel::stopCluster()
+
     dist1_cdf_indices <- cdf_indices[[1]]
     dist2_cdf_indices <- cdf_indices[[2]]
   } else {
