@@ -20,6 +20,14 @@ dMultivariateNormal <- function(x, mu, Sigma) {
   )
 }
 
+pDirichlet <- function(x, alpha) {
+  stopifnot(length(x) == length(alpha))
+  denom <- prod(gamma(alpha)) / gamma(sum(alpha))
+  return(
+    prod(x^(alpha - 1)) / denom
+  )
+}
+
 calculate_mixture_posterior <- function(data,
                                         p,
                                         mu,
@@ -33,37 +41,35 @@ calculate_mixture_posterior <- function(data,
 
   ## PRIORS
   # mixture probs prior: dir(alpha)
-  log_p_prior_prob <- sum((alpha - 1) * p)
+  # log_p_prior_prob <- sum((alpha - 1) * log(p))
   #message(paste0("Log prior probability for p is: ", log_p_prior_prob))
   # component means prior: N(mu_0, sigma_0)
   log_mean_prior_prob <- log(dMultivariateNormal(mu, mu_0, k_0 * sigma))
-  #message(paste0("Log prior probability for the component means is: ", log_mean_prior_prob))
+  message(paste0("Log prior probability for the component means is: ", log_mean_prior_prob))
   # component variances prior: Inv-Wishart(df_0, sigma_0)
   log_sigma_prior_prob <- log(dInvWishart(sigma, v_0, S_0))
-  #message(paste0("Log prior probability for the component variance structure is: ", log_sigma_prior_prob))
+  message(paste0("Log prior probability for the component variance structure is: ", log_sigma_prior_prob))
   
-  ## LIKELIHOOD
-  # p(zi | p)
+  # log(p(zi | p) * p(p))
   z <- sample(1:n_components, length(data), replace = TRUE, prob = p)
-  log_z_likelihood <- data.frame("z" = z) %>%
+  p_sum <- data.frame("z" = z) %>%
     dplyr::count(z) %>%
     dplyr::full_join(data.frame("z" = 1:n_components)) %>%
     dplyr::mutate_at("n", tidyr::replace_na, 0) %>%
     dplyr::arrange(z) %>%
-    cbind(., "p" = p) %>%
-    dplyr::summarize(l = sum(n * p)) %>%
+    cbind(., "p" = p, "alpha" = alpha) %>%
+    dplyr::summarize(l = sum((n + alpha - 1) * log(p))) %>%
     dplyr::pull(l)
-  #message(paste0("Log Z likelihood is :", log_z_likelihood))
+  message(paste0("P sum is :", p_sum))
   # p(xi | zi = j, mu_k, sigma_k)
-  log_x_likelihood <- purrr::pmap_dbl(list(
+  log_x_sum <- purrr::pmap_dbl(list(
     "x" = data,
     "mean" = mu[z],
     "sd" = sqrt(diag(sigma)[z])),
     dnorm) %>%
     log() %>%
     sum()
-  #message(paste0("Log X likelihood is: ", log_x_likelihood))
+  message(paste0("Log X sum is: ", log_x_sum))
 
-  return(sum(log_p_prior_prob, log_mean_prior_prob, log_sigma_prior_prob, log_z_likelihood,
-         log_x_likelihood))
+  return(sum(log_mean_prior_prob, log_sigma_prior_prob, p_sum, log_x_sum))
 }
