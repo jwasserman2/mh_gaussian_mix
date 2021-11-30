@@ -78,10 +78,10 @@ calculate_mixture_posterior <- function(data,
   message(paste0("P sum is :", p_sum))
   # p(xi | zi = j, mu_k, sigma_k)
   log_x_sum <- purrr::pmap_dbl(list(
-    "x" = data,
+    "q" = data,
     "mean" = mu[z],
     "sd" = sqrt(diag(sigma)[z])),
-    dnorm) %>%
+    pnorm) %>%
     log() %>%
     sum()
   message(paste0("Log X sum is: ", log_x_sum))
