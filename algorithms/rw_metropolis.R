@@ -1,9 +1,13 @@
+library(dplyr)
+library(tidyr)
+
 source("./algorithms/constants.R")
 source("./algorithms/data_sim.R")
+source("./algorithms/posterior_calculations.R")
 #' Run Random Walk Metropolis Metropolis-Hastings Algorithm
 #' Proposal dist q(x, y) for x, y in R_{d} at time t: x_{t-1} + epsilon
 #' Epsilon ~ N(0, proposal_sigma)
-#' @param n_dim int
+#' @param data matrix with dim = n x d
 #' @param mu numeric vector, component means for mixture distribution
 #' @param sigma numeric vector, component variances for mixture distribution
 #' @param mixture_probs numeric vector, mixture probabilities for mixture distribution
@@ -12,32 +16,82 @@ source("./algorithms/data_sim.R")
 #' @param seed int
 #' 
 #' @return matrix of steps in the chain
-rw_metropolis <- function(n_dim, mu, sigma, mixture_probs, proposal_sigma, n_iters, seed = NA) {
+rw_metropolis <- function(data, priors, n_components, proposal_alpha, proposal_sd, n_iters, seed = NA) {
   if (n_iters < 2) {
     rlang::abort("Must run at least 2 iterations in the chain")
   }
+  
+  incorrect_priors <- setdiff(names(priors),
+                              c("alpha", "k_0", "mu_0", "S_0", "v_0"))
+  if (length(incorrect_priors) > 0) {
+    msg <- paste0("Priors must have names \"alpha\", \"k_0\", \"mu_0\", \"S_0\", ",
+                  "and \"v_0\"")
+    rlang::abort(msg)
+  }
+
   if (is.na(seed)) {
     seed <- round(runif(1) * 1e7)
   }
-  set.seed(seed)
-  chain <- runif(n_dim)
+
   message(paste0("Running Random Walk Metropolis chain with ", n_iters, " steps and seed: ", seed))
+  set.seed(seed)
+
+  # initial param values
+  p_chain <- gtools::rdirichlet(1, rep(proposal_alpha, n_components))
+  mu_chain <- rnorm(n_components, sd = proposal_sd)
+  sigma_chain <- list(matrix(rWishart(1, n_components, diag(n_components)), ncol = n_components))
+  
+  # final pre-chain prep
+  current_args <- priors
+  current_args <- append(current_args, list(
+    "n_components" = n_components,
+    "data" = data,
+    "p" = p_chain,
+    "mu" = mu_chain,
+    "sigma" = sigma_chain[[1]]))
+  
   for (i in 2:n_iters) {
-    if (i %% 1000 == 0) {
+    if (i %% round(n_iters / 5) == 0) {
       message(paste0("Proposing step ", i))
     }
-    proposal <- chain[i - 1] + rnorm(n_dim, sd = sqrt(proposal_sigma))
-    # use sample mu, sigma, mixture probs (but say we're correct with the number of components)
-    acceptance_prob <- min(1, calculate_gaussian_mixture_prob(proposal, mu, sigma, mixture_probs) /
-                             calculate_gaussian_mixture_prob(chain[i - 1], mu, sigma, mixture_probs))
+    # proposals
+    # symmetric Dirichlet with concentration parameter alpha for mixture probs p
+    p_proposal <- gtools::rdirichlet(1, rep(proposal_alpha, n_components))
+    # symmetric Gaussian with mean 0 and variance proposal_sd^2 * I
+    mu_proposal <- rnorm(n_components, mean = matrix(mu_chain, nrow = i - 1)[i - 1,],
+                         sd = proposal_sd)
+    # Wishart with scale matrix = I and df = n_components
+    sigma_proposal <- matrix(rWishart(1, n_components, diag(n_components)), ncol = n_components)
+    
+    proposal_args <- current_args
+    proposal_args[c("p", "mu", "sigma")] <- list(
+      "p" = p_proposal,
+      "mu" = mu_proposal,
+      "sigma" = sigma_proposal
+    )
+    
+    # log hastings ratio log((h(x)/c) / (h(y)/c)) = log(h(x)) - log(h(y))
+    h_current <- suppressMessages(do.call(calculate_mixture_posterior, current_args))
+    h_proposal <- suppressMessages(do.call(calculate_mixture_posterior, proposal_args))
+    log_hastings_ratio <- h_proposal - h_current
+    
+    acceptance_prob <- exp(min(0, log_hastings_ratio))
     accept <- as.logical(rbinom(1, 1, acceptance_prob))
     if (accept) {
-      chain <- rbind(chain, proposal, deparse.level = 0)
+      p_chain <- rbind(p_chain, p_proposal, deparse.level = 0)
+      mu_chain <- rbind(mu_chain, mu_proposal, deparse.level = 0)
+      sigma_chain <- append(sigma_chain, sigma_proposal)
+      current_args <- proposal_args
     } else {
-      chain <- rbind(chain, chain[i - 1], deparse.level = 0)
+      p_chain <- rbind(p_chain, p_chain[i - 1,], deparse.level = 0)
+      mu_chain <- rbind(mu_chain, matrix(mu_chain, nrow = i - 1)[i - 1,], deparse.level = 0)
+      sigma_chain <- append(sigma_chain, sigma_chain[[i - 1]])
     }
   }
-  return(chain)
+  return(list(
+    "p_chain" = p_chain,
+    "mu_chain" = mu_chain,
+    "sigma_chain" = sigma_chain))
 }
 
 #' Make a spherically symmetric proposal
