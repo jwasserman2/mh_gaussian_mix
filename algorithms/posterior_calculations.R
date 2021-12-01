@@ -1,7 +1,7 @@
 library(dplyr)
 library(tidyr)
 
-pInvWishart <- function(sigma, df, scale_mat) {
+dInvWishart <- function(sigma, df, scale_mat) {
   p <- ncol(sigma)
   stopifnot(df > p)
   return(
@@ -13,27 +13,14 @@ pInvWishart <- function(sigma, df, scale_mat) {
   )
 }
 
-pMultivariateNormal <- function(x, mu, Sigma) {
+dMultivariateNormal <- function(x, mu, Sigma) {
   p <- length(x)
   return(
     (2 * pi)^(-p/2) * det(Sigma)^(-1/2) * exp((-1/2) * t(x - mu) %*% solve(Sigma) %*% (x - mu))
   )
 }
 
-pDirichlet <- function(x, alpha) {
-  if (length(x) == 2) {
-    return(
-      gamma(alpha[1] + alpha[2]) / (gamma(alpha[1]) * gamma(alpha[2])) *
-        x[1]^(alpha[1] - 1) * x[2]^(alpha[2] - 1)
-    )
-  }
-  denom <- prod(gamma(alpha)) / gamma(sum(alpha))
-  return(
-    prod(x^(alpha - 1)) / denom
-  )
-}
-
-pWishart <- function(sigma, df, scale_mat) {
+dWishart <- function(sigma, df, scale_mat) {
   p <- ncol(sigma)
   return(
     1 / 
@@ -59,17 +46,17 @@ calculate_mixture_posterior <- function(data,
   # log_p_prior_prob <- sum((alpha - 1) * log(p))
   #message(paste0("Log prior probability for p is: ", log_p_prior_prob))
   # component means prior: N(mu_0, sigma_0)
-  log_mean_prior_prob <- log(pMultivariateNormal(mu, mu_0, k_0 * sigma))
+  log_mean_prior_prob <- log(dMultivariateNormal(mu, mu_0, k_0 * sigma))
   message(paste0("Log prior probability for the component means is: ", log_mean_prior_prob))
   # component variances prior: Inv-Wishart(df_0, sigma_0)
-  log_sigma_prior_prob <- log(pInvWishart(sigma, v_0, S_0))
+  log_sigma_prior_prob <- log(dInvWishart(sigma, v_0, S_0))
   message(paste0("Log prior probability for the component variance structure is: ", log_sigma_prior_prob))
   
   # log(p(zi | p) * p(p))
   z <- sample(1:n_components, length(data), replace = TRUE, prob = p)
   p_sum <- data.frame("z" = z) %>%
     dplyr::count(z) %>%
-    dplyr::full_join(data.frame("z" = 1:n_components)) %>%
+    dplyr::full_join(data.frame("z" = 1:n_components), by = "z") %>%
     dplyr::mutate_at("n", tidyr::replace_na, 0) %>%
     dplyr::arrange(z) %>%
     cbind(., "p" = p, "alpha" = alpha) %>%
@@ -78,10 +65,10 @@ calculate_mixture_posterior <- function(data,
   message(paste0("P sum is :", p_sum))
   # p(xi | zi = j, mu_k, sigma_k)
   log_x_sum <- purrr::pmap_dbl(list(
-    "q" = data,
+    "x" = data,
     "mean" = mu[z],
     "sd" = sqrt(diag(sigma)[z])),
-    pnorm) %>%
+    dnorm) %>%
     log() %>%
     sum()
   message(paste0("Log X sum is: ", log_x_sum))
