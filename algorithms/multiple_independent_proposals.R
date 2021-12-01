@@ -133,6 +133,9 @@ run_multiple_independent_proposals <- function(data, K, priors, n_components,
     
     # log hastings ratio log(sum(weights(y))) - log(sum(weights(x)))
     log_hastings_ratio <- log(sum(exp(log_weights))) - log(sum(exp(log_star_weights)))
+    if (log_hastings_ratio == -Inf) {
+      log_hastings_ratio <- 0
+    }
     
     acceptance_prob <- exp(min(0, log_hastings_ratio))
     accept <- as.logical(rbinom(1, 1, acceptance_prob))
