@@ -59,5 +59,11 @@ purrr::map_dfr(mis_posterior$sigma_chain, ~ data.frame(t(sqrt(diag(.x))))) %>%
   tidyr::pivot_longer(cols = paste0("sigma_", 1:N_COMPONENTS)) %>%
   ggplot() +
   geom_line(aes(x = step, y = value, group = name, color = name))
+
+# Multiple Independent Proposals
+mip_posterior <- run_multiple_independent_proposals(data, 5, priors, N_COMPONENTS,
+                                                    proposal_alpha, proposal_sd,
+                                                    max_proposal_sigma, proposal_corr_0,
+                                                    N_CHAIN, seed = 2045)
 true_cdf <- generate_normal_mixture_data(N_DATA, true_mu, true_sigma, true_p, random = F)
 # NEED TO DERIVE THE TRUE POSTERIORS FOR EACH PARAMETER TO COMPARE FOR WASSERSTEIN DISTANCE
