@@ -1,17 +1,18 @@
 # Generate data
-N_COMPONENTS <- 3
-N_CHAIN <- 10000
-N_DATA <- 50
-true_mu <- c(-1, 0, 5)
-true_sigma <- rep(2, N_COMPONENTS)
-true_p <- c(.25, 0.5, .25)
-data <- generate_normal_mixture_data(N_DATA, true_mu, true_sigma, true_p)
+N_COMPONENTS <- 2
+N_CHAIN <- 1000
+N_DATA <- 500
+true_mu <- c(-1, 1)
+true_sds <- rep(0.5, N_COMPONENTS)
+true_p <- c(.25, .75)
+data <- generate_normal_mixture_data(N_DATA, true_mu, true_sds, true_p)
+t_data <- generate_t_mixture_data(N_DATA, true_mu, true_sigma, true_p)
 
 # priors
 priors <- list(
-  "alpha" = rep(5, N_COMPONENTS),
-  "k_0" = 5,
-  "mu_0" = rep(0, 3),
+  "alpha" = rep(1, N_COMPONENTS),
+  "k_0" = 1,
+  "mu_0" = rep(0, N_COMPONENTS),
   "S_0" = diag(N_COMPONENTS) * 5,
   "v_0" = N_COMPONENTS + 1)
 proposal_alpha <- 5
@@ -19,9 +20,11 @@ proposal_sd <- 0.1
 proposal_df <- 100
 max_proposal_sigma <- 10
 proposal_corr_0 <- 100
+true_sigma <- diag(true_sds^2)
 
-posterior <- rw_metropolis(data, priors, N_COMPONENTS, proposal_alpha, proposal_sd, 
-                           max_proposal_sigma, proposal_corr_0, N_CHAIN, seed = 2045)
+posterior <- suppressMessages(rw_metropolis(data, priors, N_COMPONENTS, proposal_alpha, proposal_sd, 
+                           max_proposal_sigma, proposal_corr_0, N_CHAIN,
+                           true_sigma, seed = 2045))
 sum(posterior$acceptances) / length(posterior$acceptances)
 setNames(data.frame(posterior$p_chain), paste0("p_", 1:N_COMPONENTS)) %>%
   cbind(., "step" = 1:N_CHAIN) %>%

@@ -41,6 +41,8 @@ calculate_mixture_posterior <- function(data,
                                         S_0,
                                         v_0) {
 
+  k_0 <- 1 # NOTE: WE ARE DEBUGGING BY MAKING SIGMA KNOWN SO SET K_0 TO 1 HERE
+
   ## PRIORS
   # mixture probs prior: dir(alpha)
   # log_p_prior_prob <- sum((alpha - 1) * log(p))
@@ -49,9 +51,9 @@ calculate_mixture_posterior <- function(data,
   log_mean_prior_prob <- log(dMultivariateNormal(mu, mu_0, k_0 * sigma))
   message(paste0("Log prior probability for the component means is: ", log_mean_prior_prob))
   # component variances prior: Inv-Wishart(df_0, sigma_0)
-  log_sigma_prior_prob <- log(dInvWishart(sigma, v_0, S_0))
-  message(paste0("Log prior probability for the component variance structure is: ", log_sigma_prior_prob))
-  
+  # log_sigma_prior_prob <- log(dInvWishart(sigma, v_0, S_0))
+  # message(paste0("Log prior probability for the component variance structure is: ", log_sigma_prior_prob))
+
   # log(p(zi | p) * p(p))
   z <- sample(1:n_components, length(data), replace = TRUE, prob = p)
   p_sum <- data.frame("z" = z) %>%
@@ -73,5 +75,6 @@ calculate_mixture_posterior <- function(data,
     sum()
   message(paste0("Log X sum is: ", log_x_sum))
 
-  return(sum(log_mean_prior_prob, log_sigma_prior_prob, p_sum, log_x_sum))
+  # return(sum(log_mean_prior_prob, log_sigma_prior_prob, p_sum, log_x_sum))
+  return(sum(log_mean_prior_prob, p_sum, log_x_sum))
 }

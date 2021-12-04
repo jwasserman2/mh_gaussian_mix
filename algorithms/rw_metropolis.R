@@ -18,7 +18,7 @@ source("./algorithms/posterior_calculations.R")
 #' @return matrix of steps in the chain
 rw_metropolis <- function(data, priors, n_components, proposal_alpha, proposal_sd,
                           max_proposal_sigma, proposal_corr_0,
-                          n_iters, seed = NA) {
+                          n_iters, true_sigma, seed = NA) {
   if (n_iters < 2) {
     rlang::abort("Must run at least 2 iterations in the chain")
   }
@@ -42,18 +42,19 @@ rw_metropolis <- function(data, priors, n_components, proposal_alpha, proposal_s
   p_chain <- gtools::rdirichlet(1, rep(proposal_alpha, n_components))
   mu_chain <- matrix(ncol = n_components)
   mu_chain[1,] <- rnorm(n_components, sd = proposal_sd)
-  init_sigma_variances <- runif(n_components, min = 0.001, max = max_proposal_sigma)
-  init_sigma_cov <- runif(1, -min(abs(init_sigma_variances)), min(abs(init_sigma_variances))) / proposal_corr_0
-  sigma_chain <- list(diag(init_sigma_variances - init_sigma_cov) + init_sigma_cov)
+  # init_sigma_variances <- runif(n_components, min = 0.001, max = max_proposal_sigma)
+  # init_sigma_cov <- runif(1, -min(abs(init_sigma_variances)), min(abs(init_sigma_variances))) / proposal_corr_0
+  # sigma_chain <- list(diag(init_sigma_variances - init_sigma_cov) + init_sigma_cov)
     
   # final pre-chain prep
   current_args <- priors
   current_args <- append(current_args, list(
     "n_components" = n_components,
     "data" = data,
-    "p" = p_chain,
+    "p" = as.vector(p_chain),
     "mu" = mu_chain[1,],
-    "sigma" = sigma_chain[[1]]))
+    # "sigma" = sigma_chain[[1]]))
+    "sigma" = true_sigma))
 
   acceptances <- c()
   for (i in 2:n_iters) {
@@ -66,40 +67,49 @@ rw_metropolis <- function(data, priors, n_components, proposal_alpha, proposal_s
     # symmetric Gaussian with mean 0 and variance proposal_sd^2 * I
     mu_proposal <- rnorm(n_components, mean = mu_chain[i - 1,], sd = proposal_sd)
     # symmetric distributions for drawing variances and covariance independently
-    proposal_variances <- runif(n_components, min = 0.001, max = max_proposal_sigma)
-    proposal_cov <- runif(1, -min(abs(proposal_variances)), min(abs(proposal_variances))) / proposal_corr_0
-    sigma_proposal <- diag(proposal_variances - proposal_cov) + proposal_cov
+    # proposal_variances <- runif(n_components, min = 0.001, max = max_proposal_sigma)
+    # proposal_cov <- runif(1, -min(abs(proposal_variances)), min(abs(proposal_variances))) / proposal_corr_0
+    # sigma_proposal <- diag(proposal_variances - proposal_cov) + proposal_cov
 
     proposal_args <- current_args
     proposal_args[c("p", "mu", "sigma")] <- list(
-      "p" = p_proposal,
+      "p" = as.vector(p_proposal),
       "mu" = mu_proposal,
-      "sigma" = sigma_proposal
+      # "sigma" = sigma_proposal
+      "sigma" = true_sigma
     )
     
     # log hastings ratio log((h(x)/c) / (h(y)/c)) = log(h(x)) - log(h(y))
+    print_names <- c("p", "mu", "sigma")
     h_current <- suppressMessages(do.call(calculate_mixture_posterior, current_args))
+    message(paste0("h_current for ",
+                   paste(paste0(print_names, " = ", current_args[print_names]), collapse = ", "),
+                   " is: ", h_current))
     h_proposal <- suppressMessages(do.call(calculate_mixture_posterior, proposal_args))
+    message(paste0("h_proposal for ",
+                   paste(paste0(print_names, " = ", proposal_args[print_names]), collapse = ", "),
+                   " is: ", h_proposal))
     log_hastings_ratio <- h_proposal - h_current
     
-    acceptance_prob <- exp(min(0, log_hastings_ratio))
+    acceptance_prob <- min(1, exp(log_hastings_ratio))
+    message(paste0("acceptance_prob is: ", acceptance_prob))
     accept <- as.logical(rbinom(1, 1, acceptance_prob))
     if (accept) {
       p_chain <- rbind(p_chain, p_proposal, deparse.level = 0)
       mu_chain <- rbind(mu_chain, mu_proposal, deparse.level = 0)
-      sigma_chain[[i]] <- sigma_proposal
+      # sigma_chain[[i]] <- sigma_proposal
       current_args <- proposal_args
-      q_current <- q_proposal
+      message("PROPOSAL WAS ACCEPTED")
     } else {
       p_chain <- rbind(p_chain, p_chain[i - 1,], deparse.level = 0)
       mu_chain <- rbind(mu_chain, mu_chain[i - 1,], deparse.level = 0)
-      sigma_chain[[i]] <- sigma_chain[[i - 1]]
+      # sigma_chain[[i]] <- sigma_chain[[i - 1]]
     }
     acceptances <- c(acceptances, accept)
   }
   return(list(
     "p_chain" = p_chain,
     "mu_chain" = mu_chain,
-    "sigma_chain" = sigma_chain,
+    # "sigma_chain" = sigma_chain,
     "acceptances" = acceptances))
 }
