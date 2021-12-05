@@ -14,4 +14,6 @@ module load R
 
 echo "Kicking off chains"
 
-Rscript ./scripts/run.R $SAMPLER $N_CHAINS $N_STEPS $N_DATA $DATA_DIST $TRUE_MEAN $TRUE_VARIANCES $TRUE_PROBS $SEED
+echo $1
+echo $2
+Rscript ./scripts/run.R $1 $2 $3 $4 $5 $6 $7 $8 $9

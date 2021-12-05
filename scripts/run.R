@@ -29,7 +29,7 @@ data_gen_func <- switch(
   "normal" = generate_normal_mixture_data,
   "t" = generate_t_mixture_data
 )
-data <- data_gen_func(N_DATA, TRUE_MEANS, sqrt(TRUE_VARIANCES), TRUE_PROBS)
+data <- data_gen_func(N_DATA, TRUE_MEANS, sqrt(TRUE_VARIANCES), TRUE_PROBS, seed = 45496)
 
 sampler_func <- switch(
   SAMPLER,
