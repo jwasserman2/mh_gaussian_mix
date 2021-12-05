@@ -19,7 +19,7 @@ source("./algorithms/posterior_calculations.R")
 #' @return matrix of steps in the chain
 run_multiple_independent_proposals <- function(data, K, priors, n_components,
                                                # proposal_alpha,
-                                               proposal_sd,
+                                               proposal_param,
                                                # max_proposal_sigma,
                                                # proposal_corr_0,
                                                n_iters,
@@ -52,7 +52,8 @@ run_multiple_independent_proposals <- function(data, K, priors, n_components,
   # initial param values
   p_chain <- gtools::rdirichlet(1, rep(4, n_components))
   mu_chain <- matrix(ncol = n_components)
-  mu_chain[1,] <- rnorm(n_components, sd = proposal_sd)
+  mu_chain[1,] <- rnorm(n_components, sd = proposal_param)
+  z <- sample(1:n_components, length(data), replace = T, prob = p_chain[1,])
   # init_sigma_variances <- runif(n_components, min = 0.001, max = max_proposal_sigma)
   # init_sigma_cov <- runif(1, -min(abs(init_sigma_variances)), min(abs(init_sigma_variances))) / proposal_corr_0
   # sigma_chain <- list(diag(init_sigma_variances - init_sigma_cov) + init_sigma_cov)
@@ -89,7 +90,7 @@ run_multiple_independent_proposals <- function(data, K, priors, n_components,
     #         simplify = F)
     
     mu_proposals <- MASS::mvrnorm(K, mu = mu_chain[i - 1,],
-                                  Sigma = diag(n_components) * proposal_sd^2)
+                                  Sigma = diag(n_components) * proposal_param^2)
 
     log_weights <- c()
     for (k in 1:K) {
@@ -103,7 +104,7 @@ run_multiple_independent_proposals <- function(data, K, priors, n_components,
       h_k <- max(calculate_mh_gibbs_mean_posterior(
         data, p_chain[i,], z, mu_proposals[k,], true_sigma, n_components, priors$mu_0, priors$tau_2),
         -1e7)
-      q_x_y <- calculate_log_mip_proposal_prob(mu_proposals[k,], mu_chain[i - 1,], proposal_sd)
+      q_x_y <- calculate_log_mip_proposal_prob(mu_proposals[k,], mu_chain[i - 1,], proposal_param)
       l_x_y <- -q_x_y
       log_weights <- c(log_weights, h_k)
     }
@@ -117,10 +118,10 @@ run_multiple_independent_proposals <- function(data, K, priors, n_components,
     # p_star_proposals <- rbind(gtools::rdirichlet(K - 1, rep(proposal_alpha, n_components)),
     #                           p_chain[i - 1,])
     # mu_star_proposals <- rbind(matrix(rnorm((K - 1) * n_components, mean = y$mu,
-    #                                         sd = proposal_sd), nrow = K - 1),
+    #                                         sd = proposal_param), nrow = K - 1),
     #                            mu_chain[i - 1,])
     mu_star_proposals <- rbind(MASS::mvrnorm(K - 1, mu = y$mu,
-                                             Sigma = diag(n_components) * proposal_sd^2),
+                                             Sigma = diag(n_components) * proposal_param^2),
                                mu_chain[i -1,])
     # sigma_proposals <- rWishart(K, proposal_df, diag(n_components) / proposal_df)
     # proposal_star_variances <- matrix(runif((K - 1) * n_components, min = 0.001,
@@ -148,9 +149,9 @@ run_multiple_independent_proposals <- function(data, K, priors, n_components,
       # q_x_y <- calculate_log_mip_proposal_prob(p_star_proposals[k,], mu_star_proposals[k,],
       #                                          sigma_star_proposals[[k]],
       #                                          rep(proposal_alpha, n_components),
-      #                                          y$mu, proposal_sd,
+      #                                          y$mu, proposal_param,
       #                                          max_proposal_sigma)
-      q_x_y <- calculate_log_mip_proposal_prob(mu_star_proposals[k,], y$mu, proposal_sd)
+      q_x_y <- calculate_log_mip_proposal_prob(mu_star_proposals[k,], y$mu, proposal_param)
       l_x_y <- -q_x_y
       log_star_weights <- c(log_star_weights, h_k)
     }

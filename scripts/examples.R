@@ -28,7 +28,7 @@ proposal_corr_0 <- 100
 posterior <- rw_metropolis(data = data,
                             priors = priors,
                             n_components = N_COMPONENTS,
-                            proposal_sd = 0.5,
+                            proposal_param = 0.5,
                             n_iters = N_CHAIN,
                             true_sigma = true_sigma,
                             seed = 2045)
@@ -110,22 +110,22 @@ purrr::map_dfr(mip_posterior$sigma_chain, ~ data.frame(t(sqrt(diag(.x))))) %>%
   geom_line(aes(x = step, y = value, group = name, color = name))
 true_cdf <- generate_normal_mixture_data(N_DATA, true_mu, true_sigma, true_p, random = F)
 
-json <- jsonlite::read_json("./jsons/rw_metropolis_normal_20_20000_hash_27453")
+json <- jsonlite::read_json("jsons/mip_sampler_normal_2_10000_hash_15176")
 chains <- jsonlite::parse_json(json[[1]])
 p_chains <- purrr::map(
   chains,
   function(x) {
-    purrr::map(chains[[1]]$p_chain, ~ matrix(unlist(.x), nrow = 1)) %>%
+    purrr::map(x$p_chain, ~ .x) %>%
       Reduce(rbind, .)
   }
 )
 mu_chains <- purrr::map(
   chains,
   function(x) {
-    purrr::map(chains[[1]]$mu_chain, ~ matrix(unlist(.x), nrow = 1)) %>%
+    purrr::map(x$mu_chain, ~ .x) %>%
       Reduce(rbind, .)
   }
 )
-purrr::map(mu_chains, ~ mean(.x[10000:20000, 2]))
+purrr::map(mu_chains, ~ mean(.x[, 1]))
 
 # NEED TO DERIVE THE TRUE POSTERIORS FOR EACH PARAMETER TO COMPARE FOR WASSERSTEIN DISTANCE

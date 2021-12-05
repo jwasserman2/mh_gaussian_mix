@@ -20,7 +20,7 @@ rw_metropolis <- function(data,
                           priors,
                           n_components,
                           # proposal_alpha,
-                          proposal_sd,
+                          proposal_param,
                           # max_proposal_sigma,
                           # proposal_corr_0,
                           n_iters,
@@ -53,7 +53,7 @@ rw_metropolis <- function(data,
   # initial param values
   p_chain <- gtools::rdirichlet(1, rep(4, n_components))
   mu_chain <- matrix(ncol = n_components)
-  mu_chain[1,] <- rnorm(n_components, sd = proposal_sd)
+  mu_chain[1,] <- rnorm(n_components, sd = proposal_param)
   z <- sample(1:n_components, length(data), replace = T, prob = p_chain[1,])
   # init_sigma_variances <- runif(n_components, min = 0.001, max = max_proposal_sigma)
   # init_sigma_cov <- runif(1, -min(abs(init_sigma_variances)), min(abs(init_sigma_variances))) / proposal_corr_0
@@ -106,8 +106,8 @@ rw_metropolis <- function(data,
     h_current <- max(calculate_mh_gibbs_mean_posterior(
       data, p_chain[i,], z, mu_chain[i-1,], true_sigma, n_components, priors$mu_0, priors$tau_2),
       -1e7)
-    # symmetric Gaussian with mean 0 and variance proposal_sd^2 * I
-    mu_proposal <- rnorm(n_components, mean = mu_chain[i - 1,], sd = proposal_sd)
+    # symmetric Gaussian with mean 0 and variance proposal_param^2 * I
+    mu_proposal <- rnorm(n_components, mean = mu_chain[i - 1,], sd = proposal_param)
     h_proposal <- max(calculate_mh_gibbs_mean_posterior(
       data, p_chain[i,], z, mu_proposal, true_sigma, n_components, priors$mu_0, priors$tau_2),
       -1e7)
