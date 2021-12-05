@@ -1,6 +1,7 @@
 library(foreach)
 library(parallel)
 library(doParallel)
+library(jsonlite)
 
 args <- commandArgs(TRUE)
 SAMPLER <- args[1]
@@ -28,6 +29,7 @@ data_gen_func <- switch(
   "normal" = generate_normal_mixture_data,
   "t" = generate_t_mixture_data
 )
+data <- data_gen_func(N_DATA, TRUE_MEANS, sqrt(TRUE_VARIANCES), TRUE_PROBS)
 
 sampler_func <- switch(
   SAMPLER,
@@ -59,5 +61,7 @@ chains <- foreach::foreach(seed = seq(SEED, SEED + N_CHAINS, by = 1)) %dopar% {
 parallel::stopCluster(cl)
 
 json <- jsonlite::toJSON(chains)
-json_file <- paste0("./jsons/", paste(c(SAMPLER, DATA_DIST, N_CHAINS, N_STEPS), collapse = "_"))
+file_suffix <- paste(c(SAMPLER, DATA_DIST, N_CHAINS, N_STEPS, "hash", round(runif(1), 5) * 1e5),
+                     collapse = "_")
+json_file <- paste0("./jsons/", file_suffix)
 jsonlite::write_json(json, json_file)
