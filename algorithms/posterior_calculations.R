@@ -103,7 +103,7 @@ calculate_mh_gibbs_mean_posterior <- function(data, p, z, mu, sigma, n_component
     log_posterior_prob_sum <- log_posterior_prob_sum +
       log(dnorm(mu[k], (mu_0[k] / tau_2 + sum(data[z == k]) / diag(sigma)[k]) /
                            (1 / tau_2 + sum(z == k) / diag(sigma)[k]),
-          sqrt((1 / tau_2 + sum(z == k) / diag(sigma)[k]))))
+          sqrt(1 / (1 / tau_2 + sum(z == k) / diag(sigma)[k]))))
   }
 
   return(log_posterior_prob_sum)
@@ -115,13 +115,16 @@ calculate_gibbs_z_updates <- function(data, p, mu, sigma, n_components) {
   z <- sample(1:n_components, length(data), replace = TRUE, prob = p)
   p_x_all <- data.frame("x" = data, "z" = z, "p_z" = p[z],  "mu_z" = mu[z],
                         "sd_z" = sqrt(diag(sigma))[z], "p_x_all" = rep(0, length(data)))
-  for (i in 1:n_components) {
+  p_x_all <- data.frame("p_x_z_1" = p[1] * dnorm(data, mu[1], sqrt(diag(sigma))[1]))
+  for (i in 2:n_components) {
     p_x_all <- p_x_all %>%
-      dplyr::mutate(!!sym(paste0("p_x_z_", i)) := p[i] * dnorm(data, mu[i], sqrt(diag(sigma))[i]),
-                    p_x_all = p_x_all + !!sym(paste0("p_x_z_", i)))
+      dplyr::mutate(!!sym(paste0("p_x_z_", i)) := p[i] * dnorm(data, mu[i], sqrt(diag(sigma))[i]))
   }
 
-  z_draws <- p_x_all %>%
+  z_draws <- t(p_x_all) %>%
+    rbind(., "p_x_all" = colSums(.)) %>%
+    t() %>%
+    as.data.frame() %>%
     dplyr::mutate_at(vars(tidyselect::starts_with("p_x_z")), list("multinom" = ~ .x / p_x_all)) %>%
     dplyr::select(tidyselect::contains("multinom")) %>%
     purrr::pmap_dbl(., function(...) {
