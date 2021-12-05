@@ -1,3 +1,5 @@
+BURN_IN_ITERS <- N_STEPS / 2 # Gelman and Rubin, 1998
+
 # Generate data
 N_COMPONENTS <- 2
 N_CHAIN <- 10000
@@ -85,9 +87,10 @@ purrr::map_dfr(mis_posterior$sigma_chain, ~ data.frame(t(sqrt(diag(.x))))) %>%
 
 # Multiple Independent Proposals
 mip_posterior <- run_multiple_independent_proposals(data, 5, priors, N_COMPONENTS,
-                                                    proposal_alpha, proposal_sd,
-                                                    max_proposal_sigma, proposal_corr_0,
-                                                    N_CHAIN, seed = 2045)
+                                                    # proposal_alpha,
+                                                    proposal_sd,
+                                                    # max_proposal_sigma, proposal_corr_0,
+                                                    N_CHAIN, true_sigma, seed = 2045)
 sum(mip_posterior$acceptances) / length(mip_posterior$acceptances)
 setNames(data.frame(mip_posterior$p_chain), paste0("p_", 1:N_COMPONENTS)) %>%
   cbind(., "step" = 1:N_CHAIN) %>%

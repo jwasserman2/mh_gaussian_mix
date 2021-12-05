@@ -53,7 +53,7 @@ run_metropolized_independent_sampler <- function(data,
   set.seed(seed)
   
   # initial param values
-  p_chain <- gtools::rdirichlet(1, rep(1, n_components))
+  p_chain <- gtools::rdirichlet(1, rep(4, n_components))
   mu_chain <- matrix(ncol = n_components)
   mu_chain[1,] <- rt(n_components, df = proposal_df)
   z <- sample(1:n_components, length(data), replace = T, prob = p_chain[1,])
