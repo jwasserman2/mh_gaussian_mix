@@ -19,7 +19,6 @@ stopifnot(all(length(TRUE_MEANS) == length(TRUE_VARIANCES), length(TRUE_MEANS) =
 N_COMPONENTS <- length(TRUE_MEANS)
 TRUE_SIGMA <- diag(TRUE_VARIANCES)
 
-source("./algorithms/constants.R")
 source("./algorithms/data_sim.R")
 algorithm_file <- switch(
   SAMPLER,
@@ -64,14 +63,14 @@ n_cores <- parallel::detectCores() - 1
 cl <- parallel::makeCluster(n_cores, type = "FORK")
 doParallel::registerDoParallel(cl)
 
-chains <- foreach::foreach(seed = seq(SEED, SEED + N_CHAINS, by = 1)) %dopar% {
+chains <- foreach::foreach(seed = seq(SEED, SEED + N_CHAINS - 1, by = 1)) %dopar% {
   sampler_args[["seed"]] <- seed
   do.call(sampler_func, sampler_args)
 }
 parallel::stopCluster(cl)
 
 json <- jsonlite::toJSON(chains)
-file_suffix <- paste(c(SAMPLER, DATA_DIST, N_CHAINS, N_STEPS, "hash", round(runif(1), 5) * 1e5),
+file_suffix <- paste(c(SAMPLER, DATA_DIST, N_CHAINS, N_STEPS, format(Sys.time(), "%m%d_%H%S")),
                      collapse = "_")
 json_file <- paste0("./jsons/", file_suffix)
 jsonlite::write_json(json, json_file)

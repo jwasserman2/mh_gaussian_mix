@@ -57,7 +57,7 @@ run_metropolized_independent_sampler <- function(data,
   mu_chain <- matrix(ncol = n_components)
   mu_chain[1,] <- rt(n_components, df = proposal_param)
   z <- sample(1:n_components, length(data), replace = T, prob = p_chain[1,])
-  # sigma_chain <- list(matrix(rWishart(1, proposal_param, diag(n_components) / proposal_param),
+  # sigma_chain <- list(matrix(rWishart(1, proposal_df, diag(n_components) / proposal_df),
   #                            ncol = n_components))
   
   # final pre-chain prep
@@ -82,7 +82,7 @@ run_metropolized_independent_sampler <- function(data,
     if (length(unique(z)) == 1) {
       z[sample(1:length(z), 1)] <- sample(dplyr::setdiff(1:n_components, z), 1)
     }
-    # sigma_proposal <- matrix(rWishart(1, proposal_param, diag(n_components) / proposal_param),
+    # sigma_proposal <- matrix(rWishart(1, proposal_df, diag(n_components) / proposal_df),
     #                          ncol = n_components)
 
     # proposal_args <- current_args
@@ -101,8 +101,8 @@ run_metropolized_independent_sampler <- function(data,
     #   dir_parameter = rep(proposal_alpha, n_components),
     #   mvn_mu_parameter = rep(0, n_components),
     #   mvr_sigma_parameter = diag(n_components) * proposal_sd^2,
-    #   wish_df_parameter = proposal_param,
-    #   wish_scale_mat_parameter = diag(n_components) / proposal_param))
+    #   wish_df_parameter = proposal_df,
+    #   wish_scale_mat_parameter = diag(n_components) / proposal_df))
     # h_y <- suppressMessages(do.call(calculate_mixture_posterior, proposal_args))
     # g_y <- as.vector(calculate_log_mis_proposal_prob(
     #   p = p_proposal,
@@ -111,20 +111,18 @@ run_metropolized_independent_sampler <- function(data,
     #   dir_parameter = rep(proposal_alpha, n_components),
     #   mvn_mu_parameter = rep(0, n_components),
     #   mvr_sigma_parameter = diag(n_components) * proposal_sd^2,
-    #   wish_df_parameter = proposal_param,
-    #   wish_scale_mat_parameter = diag(n_components) / proposal_param))
+    #   wish_df_parameter = proposal_df,
+    #   wish_scale_mat_parameter = diag(n_components) / proposal_df))
     h_x <- max(calculate_mh_gibbs_mean_posterior(
       data, p_chain[i,], z, mu_chain[i-1,], true_sigma, n_components, priors$mu_0, priors$tau_2),
       -1e7)
-    q_x <- as.vector(calculate_log_mis_proposal_prob(
-      mu_chain[i-1,], rep(0, n_components), proposal_param))
+    q_x <- as.vector(calculate_log_mis_proposal_prob(mu_chain[i-1,], proposal_param))
     
     mu_proposal <- rt(n_components, df = proposal_param)
     h_y <- max(calculate_mh_gibbs_mean_posterior(
       data, p_chain[i,], z, mu_proposal, true_sigma, n_components, priors$mu_0, priors$tau_2),
       -1e7)
-    q_y <- as.vector(calculate_log_mis_proposal_prob(
-      mu_proposal, rep(0, n_components), proposal_param))
+    q_y <- as.vector(calculate_log_mis_proposal_prob(mu_proposal, proposal_param))
     
     log_hastings_ratio <- h_y + q_x - h_x - q_y
 
