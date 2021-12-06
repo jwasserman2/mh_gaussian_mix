@@ -14,6 +14,7 @@ TRUE_VARIANCES <- as.numeric(strsplit(args[7], ",")[[1]])
 TRUE_PROBS <- as.numeric(strsplit(args[8], ",")[[1]])
 PROPOSAL_PARAM <- as.numeric(args[9])
 SEED <- as.numeric(args[10])
+JOB_ID <- as.numeric(args[11])
 
 stopifnot(all(length(TRUE_MEANS) == length(TRUE_VARIANCES), length(TRUE_MEANS) == length(TRUE_PROBS)))
 N_COMPONENTS <- length(TRUE_MEANS)
@@ -70,7 +71,7 @@ chains <- foreach::foreach(seed = seq(SEED, SEED + N_CHAINS - 1, by = 1)) %dopar
 parallel::stopCluster(cl)
 
 json <- jsonlite::toJSON(chains)
-file_suffix <- paste(c(SAMPLER, DATA_DIST, N_CHAINS, N_STEPS, format(Sys.time(), "%m%d_%H%S")),
+file_suffix <- paste(c(SAMPLER, DATA_DIST, N_CHAINS, N_STEPS, JOB_ID),
                      collapse = "_")
 json_file <- paste0("./jsons/", file_suffix)
 jsonlite::write_json(json, json_file)

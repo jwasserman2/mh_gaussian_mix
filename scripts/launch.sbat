@@ -16,4 +16,5 @@ echo "Kicking off chains"
 
 echo $1
 echo $2
-Rscript ./scripts/run.R $1 $2 $3 $4 $5 $6 $7 $8 $9
+echo ${10}
+Rscript ./scripts/run.R $1 $2 $3 $4 $5 $6 $7 $8 $9 ${10} $SLURM_JOBID
