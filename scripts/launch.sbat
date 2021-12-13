@@ -1,0 +1,20 @@
+#!/bin/bash
+
+#SBATCH --job-name=mh_gaussian_mix_run
+#SBATCH --mail-user=jwass@umich.edu
+#SBATCH --mail-type=BEGIN,END,FAIL
+#SBATCH --account=stats_dept1
+#SBATCH --partition=standard
+#SBATCH --nodes=1
+#SBATCH --ntasks-per-node=36
+#SBATCH --cpus-per-task=1
+#SBATCH --mem-per-cpu=1GB
+
+module load R
+
+echo "Kicking off chains"
+
+echo $1
+echo $2
+echo ${10}
+Rscript ./scripts/run.R $1 $2 $3 $4 $5 $6 $7 $8 $9 ${10} $SLURM_JOBID
